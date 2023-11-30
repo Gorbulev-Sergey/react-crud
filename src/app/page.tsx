@@ -1,95 +1,77 @@
-import Image from 'next/image'
-import styles from './page.module.css'
+'use client';
+
+import { db } from '@/scripts/firebase';
+import { onValue, ref, remove } from 'firebase/database';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import CreatePost from '@/components/CreatePost';
+import { Post } from '@/models/Post';
+
+function removePost(uid: string) {
+	remove(ref(db, `/posts/${uid}`));
+}
 
 export default function Home() {
-  return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+	let [posts, setPosts] = useState([] as [string, Post][]);
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+	useEffect(() => {
+		onValue(ref(db, '/posts'), s => {
+			if (s.exists()) setPosts(Object.entries(s.val()) as [string, Post][]);
+		});
+	}, []);
 
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
+	return (
+		<>
+			<div className="container my-4">
+				<CreatePost className="mb-3" />
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
+				<div className="bg-light text-dark p-3 rounded mb-3">
+					<h4>Список публикаций</h4>
+					<div className="d-flex flex-column gap-2">
+						{posts.map(([key, post], i) => {
+							return (
+								<div key={key} className="d-flex justify-content-between align-items-center">
+									<div>
+										{i + 1}. {post.title}
+									</div>
+									<button
+										className="btn btn-sm btn-dark text-light"
+										onClick={() => {
+											removePost(key);
+										}}>
+										Удалить
+									</button>
+								</div>
+							);
+						})}
+					</div>
+				</div>
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
+				<div className="row row-cols-1 row-cols-md-3 g-4">
+					{posts.map(([key, post], i) => {
+						return (
+							<div key={key} className="col">
+								<div className="d-flex flex-column bg-light text-dark rounded h-100">
+									<div className="p-3 flex-grow-1">
+										<div className="d-flex justify-content-between align-items-center">
+											<h5>{post.title}</h5>
+											<button
+												className="btn btn-sm btn-dark text-light"
+												onClick={() => {
+													removePost(key);
+												}}>
+												Удалить
+											</button>
+										</div>
+										<div>{post.description}</div>
+									</div>
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+									<div className="rounded-bottom" style={{ height: '10em', background: `url(${post.cover}) center`, backgroundSize: 'cover' }}></div>
+								</div>
+							</div>
+						);
+					})}
+				</div>
+			</div>
+		</>
+	);
 }
